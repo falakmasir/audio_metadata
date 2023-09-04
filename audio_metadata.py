@@ -1,6 +1,61 @@
 from pydub import AudioSegment, silence
 import os
 import numpy as np
+import aubio
+
+def calculate_pitch_in_memory(audio_data, sample_rate):
+    # Convert audio data to 16-bit PCM if needed
+    if audio_data.dtype != np.int16:
+        audio_data = (audio_data * 32768).astype(np.int16)
+    
+    # Create an Aubio pitch detection object
+    pitch_o = aubio.pitch("yin", sample_rate)
+    
+    # Initialize variables
+    pitch_values = []
+    
+    # Process the audio data and calculate pitch
+    total_frames = 0
+    frame_size = pitch_o.hop_size  # Hop size for processing
+    
+    for i in range(0, len(audio_data), frame_size):
+        samples = audio_data[i:i + frame_size]
+        pitch = pitch_o(samples)[0]
+        pitch_values.append(pitch)
+        total_frames += frame_size
+    
+    # Calculate average pitch
+    average_pitch = sum(pitch_values) / len(pitch_values)
+    
+    return average_pitch
+
+def gender_identification(audio_data, sample_rate):
+    # Calculate the average pitch of the audio
+    average_pitch = calculate_pitch_in_memory(audio_data, sample_rate)
+    
+    # Define pitch thresholds for gender identification
+    male_threshold = 120.0  # Adjust as needed
+    female_threshold = 220.0  # Adjust as needed
+    
+    # Determine gender based on pitch
+    if average_pitch < male_threshold:
+        return "Male"
+    elif average_pitch > female_threshold:
+        return "Female"
+    else:
+        return "Undetermined"
+
+# Usage
+import soundfile as sf
+
+# Load audio data (you can replace this with your own audio loading logic)
+audio_path = "your_audio_file.wav"
+audio_data, sample_rate = sf.read(audio_path)
+
+# Perform gender identification
+gender = gender_identification(audio_data, sample_rate)
+print("Gender:", gender)
+
 
 def calculate_dynamic_threshold(audio, window_size=1000):
     """
