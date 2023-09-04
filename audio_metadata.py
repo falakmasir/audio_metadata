@@ -4,25 +4,27 @@ import numpy as np
 import aubio
 
 def calculate_pitch_in_memory(audio_data, sample_rate):
-    # Convert audio data to 16-bit PCM if needed
-    if audio_data.dtype != np.int16:
-        audio_data = (audio_data * 32768).astype(np.int16)
+    samplerate = audio.frame_rate
+    pitch_o = aubio.pitch("yin", samplerate)
     
-    # Create an Aubio pitch detection object
-    pitch_o = aubio.pitch("yin", sample_rate)
+    # Open the WAV file
+    audio_file = aubio.source(temp_wav_file)
     
     # Initialize variables
     pitch_values = []
     
-    # Process the audio data and calculate pitch
+    # Process the audio file and calculate pitch
     total_frames = 0
-    frame_size = pitch_o.hop_size  # Hop size for processing
-    
-    for i in range(0, len(audio_data), frame_size):
-        samples = audio_data[i:i + frame_size]
+    while True:
+        samples, read = audio_file()
         pitch = pitch_o(samples)[0]
         pitch_values.append(pitch)
-        total_frames += frame_size
+        total_frames += read
+        if read < samplerate:
+            break
+    
+    # Clean up
+    audio_file.close()
     
     # Calculate average pitch
     average_pitch = sum(pitch_values) / len(pitch_values)
